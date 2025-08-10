@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinDocGPT - Microsoft Financial Analysis</title>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* Custom animations */
+        @keyframes pulse-blue {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .pulse-blue {
+            animation: pulse-blue 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        .loading-skeleton {
+            background: linear-gradient(90deg, #1f2937 25%, #374151 50%, #1f2937 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+        
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        /* Glass morphism effect */
+        .glass {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
+        
+        /* Number animation */
+        .count-up {
+            transition: all 0.5s ease-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <!-- Header -->
+    <header class="bg-gray-800 border-b border-gray-700">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-2xl font-bold text-blue-400">FinDocGPT</h1>
+                    <p class="text-sm text-gray-400">AI-Powered Financial Intelligence for Microsoft (MSFT)</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-right">
+                        <div class="text-2xl font-bold" id="currentPrice">$---.--</div>
+                        <div class="text-sm" id="priceChange">
+                            <span id="priceChangeValue">--.--</span>
+                            <span id="priceChangePercent">(--.---%)</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <div class="w-2 h-2 bg-green-500 rounded-full pulse-blue"></div>
+                        <span class="text-sm text-gray-400">Live</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-6">
+        <!-- Top Section - Key Metrics -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="glass rounded-lg p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-400">Current Price</p>
+                        <p class="text-xl font-bold" id="metricPrice">$---.--</p>
+                    </div>
+                    <i class="fas fa-chart-line text-2xl text-blue-400"></i>
+                </div>
+            </div>
+            <div class="glass rounded-lg p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-400">Expected Return</p>
+                        <p class="text-xl font-bold" id="expectedReturn">--.-%</p>
+                    </div>
+                    <i class="fas fa-trending-up text-2xl text-green-400"></i>
+                </div>
+            </div>
+            <div class="glass rounded-lg p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-400">Confidence</p>
+                        <p class="text-xl font-bold" id="confidence">--%</p>
+                    </div>
+                    <i class="fas fa-shield-alt text-2xl text-purple-400"></i>
+                </div>
+            </div>
+            <div class="glass rounded-lg p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-400">Recommendation</p>
+                        <p class="text-xl font-bold" id="recommendation">---</p>
+                    </div>
+                    <i class="fas fa-robot text-2xl text-yellow-400"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Three Column Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <!-- Stage 1: Document Insights -->
+            <div class="glass rounded-lg p-6">
+                <h2 class="text-xl font-bold mb-4 text-blue-400">
+                    <i class="fas fa-file-alt mr-2"></i>Document Insights
+                </h2>
+                
+                <!-- Tabs -->
+                <div class="flex space-x-2 mb-4">
+                    <button class="tab-btn px-3 py-1 rounded bg-blue-600 text-sm" data-tab="insights">Insights</button>
+                    <button class="tab-btn px-3 py-1 rounded bg-gray-700 text-sm" data-tab="sentiment">Sentiment</button>
+                    <button class="tab-btn px-3 py-1 rounded bg-gray-700 text-sm" data-tab="anomalies">Anomalies</button>
+                    <button class="tab-btn px-3 py-1 rounded bg-gray-700 text-sm" data-tab="qa">Q&A</button>
+                </div>
+                
+                <!-- Tab Content -->
+                <div id="insights-tab" class="tab-content">
+                    <div class="space-y-3" id="insightsList">
+                        <div class="loading-skeleton h-20 rounded"></div>
+                    </div>
+                </div>
+                
+                <div id="sentiment-tab" class="tab-content hidden">
+                    <canvas id="sentimentChart" width="200" height="200"></canvas>
+                </div>
+                
+                <div id="anomalies-tab" class="tab-content hidden">
+                    <div id="anomaliesList" class="space-y-2">
+                        <div class="loading-skeleton h-16 rounded"></div>
+                    </div>
+                </div>
+                
+                <div id="qa-tab" class="tab-content hidden">
+                    <div class="space-y-3">
+                        <div id="qaHistory" class="max-h-48 overflow-y-auto space-y-2 mb-3"></div>
+                        <div class="flex space-x-2">
+                            <input type="text" id="questionInput" 
+                                class="flex-1 bg-gray-800 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="Ask about Microsoft's financials...">
+                            <button id="askButton" 
+                                class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-sm transition-colors">
+                                Ask AI
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stage 2: Price Forecast -->
+            <div class="glass rounded-lg p-6">
+                <h2 class="text-xl font-bold mb-4 text-green-400">
+                    <i class="fas fa-chart-area mr-2"></i>Price Forecast
+                </h2>
+                
+                <!-- Forecast Controls -->
+                <div class="flex space-x-2 mb-4">
+                    <button class="forecast-btn px-3 py-1 rounded bg-green-600 text-sm" data-days="7">7 Days</button>
+                    <button class="forecast-btn px-3 py-1 rounded bg-gray-700 text-sm" data-days="30">30 Days</button>
+                    <button class="forecast-btn px-3 py-1 rounded bg-gray-700 text-sm" data-days="90">90 Days</button>
+                </div>
+                
+                <!-- Chart Container -->
+                <div class="relative">
+                    <canvas id="priceChart" height="250"></canvas>
+                </div>
+                
+                <!-- Technical Indicators -->
+                <div class="mt-4 space-y-2">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-400">RSI</span>
+                        <span id="rsiValue">--</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-400">SMA 20</span>
+                        <span id="sma20Value">$---.--</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-400">Trend</span>
+                        <span id="trendValue" class="font-bold">---</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stage 3: Investment Decision -->
+            <div class="glass rounded-lg p-6">
+                <h2 class="text-xl font-bold mb-4 text-purple-400">
+                    <i class="fas fa-balance-scale mr-2"></i>Investment Strategy
+                </h2>
+                
+                <!-- Recommendation Card -->
+                <div class="text-center mb-6">
+                    <div id="recommendationBadge" class="text-4xl font-bold mb-2 pulse-blue">---</div>
+                    <div class="text-gray-400">AI Recommendation</div>
+                </div>
+                
+                <!-- Confidence Gauge -->
+                <div class="mb-6">
+                    <div class="flex justify-between text-sm mb-2">
+                        <span>Confidence</span>
+                        <span id="confidencePercent">--%</span>
+                    </div>
+                    <div class="w-full bg-gray-700 rounded-full h-3">
+                        <div id="confidenceBar" class="bg-gradient-to-r from-green-500 to-blue-500 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+                
+                <!-- Score Breakdown -->
+                <div class="space-y-2 mb-4">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-400">Fundamental</span>
+                        <span id="fundamentalScore">-.---</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-400">Sentiment</span>
+                        <span id="sentimentScore">-.---</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-400">Technical</span>
+                        <span id="technicalScore">-.---</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-400">Forecast</span>
+                        <span id="forecastScore">-.---</span>
+                    </div>
+                </div>
+                
+                <!-- Rationale -->
+                <div class="bg-gray-800 rounded p-3 mb-4">
+                    <p class="text-sm font-semibold mb-1">Rationale</p>
+                    <p class="text-sm text-gray-400" id="rationale">Loading analysis...</p>
+                </div>
+                
+                <!-- Risks -->
+                <div>
+                    <p class="text-sm font-semibold mb-2">Key Risks</p>
+                    <div id="risksList" class="space-y-1">
+                        <div class="loading-skeleton h-8 rounded"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Section - Benchmarks -->
+        <div class="glass rounded-lg p-6">
+            <h2 class="text-xl font-bold mb-4">
+                <i class="fas fa-tachometer-alt mr-2"></i>Performance Benchmarks
+            </h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="benchmarks">
+                <div class="text-center">
+                    <p class="text-2xl font-bold" id="qaAccuracy">--%</p>
+                    <p class="text-sm text-gray-400">Q&A Accuracy</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-2xl font-bold" id="predictionStatus">---</p>
+                    <p class="text-sm text-gray-400">Prediction Status</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-2xl font-bold" id="processingTime">--s</p>
+                    <p class="text-sm text-gray-400">Processing Time</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-2xl font-bold" id="apiStatus">---</p>
+                    <p class="text-sm text-gray-400">API Status</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-4 right-4 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg transform translate-x-full transition-transform duration-300">
+        <p id="toastMessage">Error message</p>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE = 'http://localhost:8000';  // Update this with your ngrok URL if needed
+        
+        // Global variables
+        let priceChart = null;
+        let sentimentChart = null;
+        let currentForecastDays = 30;
+        
+        // Utility functions
+        function showToast(message, type = 'error') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            
+            toastMessage.textContent = message;
+            toast.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg transform transition-transform duration-300 ${
+                type === 'error' ? 'bg-red-600' : 'bg-green-600'
+            } text-white`;
+            
+            toast.style.transform = 'translateX(0)';
+            
+            setTimeout(() => {
+                toast.style.transform = 'translateX(100%)';
+            }, 3000);
+        }
+        
+        function animateNumber(element, start, end, duration = 500) {
+            const range = end - start;
+            const startTime = performance.now();
+            
+            function update(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                const current = start + (range * progress);
+                element.textContent = current.toFixed(2);
+                
+                if (progress < 1) {
+                    requestAnimationFrame(update);
+                }
+            }
+            
+            requestAnimationFrame(update);
+        }
+        
+        // API Functions
+        async function fetchAnalysis() {
+            try {
+                const response = await fetch(`${API_BASE}/api/analyze`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return await response.json();
+            } catch (error) {
+                console.error('Error fetching analysis:', error);
+                showToast('Failed to connect to backend. Make sure it\'s running on ' + API_BASE);
+                throw error;
+            }
+        }
+        
+        async function askQuestion(question) {
+            try {
+                const response = await fetch(`${API_BASE}/api/ask`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ question })
+                });
+                
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return await response.json();
+            } catch (error) {
+                console.error('Error asking question:', error);
+                showToast('Failed to get AI response');
+                throw error;
+            }
+        }
+        
+        async function fetchForecast(days) {
+            try {
+                const response = await fetch(`${API_BASE}/api/forecast/${days}`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return await response.json();
+            } catch (error) {
+                console.error('Error fetching forecast:', error);
+                showToast('Failed to fetch forecast data');
+                throw error;
+            }
+        }
+        
+        async function fetchBenchmarks() {
+            try {
+                const response = await fetch(`${API_BASE}/api/benchmarks`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return await response.json();
+            } catch (error) {
+                console.error('Error fetching benchmarks:', error);
+                throw error;
+            }
+        }
+        
+        // Update UI Functions
+        function updateMainMetrics(data) {
+            // Update header price
+            const currentPriceEl = document.getElementById('currentPrice');
+            const priceChangeEl = document.getElementById('priceChangeValue');
+            const priceChangePercentEl = document.getElementById('priceChangePercent');
+            
+            currentPriceEl.textContent = `$${data.current_price.toFixed(2)}`;
+            
+            // Mock price change for demo (you can add this to your backend)
+            const priceChange = (Math.random() - 0.5) * 5;
+            const priceChangePercent = (priceChange / data.current_price) * 100;
+            
+            priceChangeEl.textContent = priceChange > 0 ? `+${priceChange.toFixed(2)}` : priceChange.toFixed(2);
+            priceChangePercentEl.textContent = `(${priceChangePercent > 0 ? '+' : ''}${priceChangePercent.toFixed(2)}%)`;
+            priceChangeEl.className = priceChange > 0 ? 'text-green-400' : 'text-red-400';
+            
+            // Update metric cards
+            document.getElementById('metricPrice').textContent = `$${data.current_price.toFixed(2)}`;
+            document.getElementById('expectedReturn').textContent = `${data.expected_return > 0 ? '+' : ''}${data.expected_return}%`;
+            document.getElementById('expectedReturn').className = `text-xl font-bold ${data.expected_return > 0 ? 'text-green-400' : 'text-red-400'}`;
+            document.getElementById('confidence').textContent = `${data.confidence}%`;
+            
+            // Update recommendation
+            const recommendationEl = document.getElementById('recommendation');
+            recommendationEl.textContent = data.recommendation;
+            recommendationEl.className = `text-xl font-bold ${
+                data.recommendation.includes('BUY') ? 'text-green-400' : 
+                data.recommendation.includes('SELL') ? 'text-red-400' : 
+                'text-yellow-400'
+            }`;
+        }
+        
+        function updateDocumentInsights(data) {
+            const insightsList = document.getElementById('insightsList');
+            insightsList.innerHTML = '';
+            
+            Object.entries(data.document_insights).forEach(([key, value]) => {
+                const icon = {
+                    revenue_growth: 'fa-chart-line',
+                    cloud_performance: 'fa-cloud',
+                    profitability: 'fa-dollar-sign',
+                    cash_position: 'fa-money-bill-wave'
+                }[key] || 'fa-info-circle';
+                
+                const div = document.createElement('div');
+                div.className = 'bg-gray-800 rounded p-3';
+                div.innerHTML = `
+                    <div class="flex items-start space-x-3">
+                        <i class="fas ${icon} text-blue-400 mt-1"></i>
+                        <p class="text-sm">${value}</p>
+                    </div>
+                `;
+                insightsList.appendChild(div);
+            });
+        }
+        
+        function updateSentimentChart(data) {
+            const ctx = document.getElementById('sentimentChart').getContext('2d');
+            
+            if (sentimentChart) {
+                sentimentChart.destroy();
+            }
+            
+            sentimentChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Positive', 'Neutral', 'Negative'],
+                    datasets: [{
+                        data: [
+                            data.sentiment_analysis.positive * 100,
+                            data.sentiment_analysis.neutral * 100,
+                            data.sentiment_analysis.negative * 100
+                        ],
+                        backgroundColor: [
+                            'rgb(34, 197, 94)',
+                            'rgb(156, 163, 175)',
+                            'rgb(239, 68, 68)'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: 'white',
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function updateAnomalies(data) {
+            const anomaliesList = document.getElementById('anomaliesList');
+            anomaliesList.innerHTML = '';
+            
+            if (data.anomalies_detected.length === 0) {
+                anomaliesList.innerHTML = '<p class="text-sm text-gray-400">No anomalies detected</p>';
+                return;
+            }
+            
+            data.anomalies_detected.forEach(anomaly => {
+                const div = document.createElement('div');
+                div.className = `bg-gray-800 rounded p-3 border-l-4 ${
+                    anomaly.type === 'positive' ? 'border-green-500' : 'border-yellow-500'
+                }`;
+                div.innerHTML = `
+                    <p class="text-sm font-semibold">${anomaly.metric}: ${anomaly.value}</p>
+                    <p class="text-xs text-gray-400">${anomaly.description}</p>
+                `;
+                anomaliesList.appendChild(div);
+            });
+        }
+        
+        async function updatePriceChart(days = 30) {
+            const forecastData = await fetchForecast(days);
+            const ctx = document.getElementById('priceChart').getContext('2d');
+            
+            if (priceChart) {
+                priceChart.destroy();
+            }
+            
+            // Generate historical dates
+            const historicalDates = [];
+            const historicalPrices = [];
+            for (let i = days; i > 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                historicalDates.push(date.toISOString().split('T')[0]);
+                historicalPrices.push(forecastData.current_price + (Math.random() - 0.5) * 10);
+            }
+            
+            priceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [...historicalDates, ...forecastData.dates],
+                    datasets: [{
+                        label: 'Historical',
+                        data: [...historicalPrices, forecastData.current_price],
+                        borderColor: 'rgb(59, 130, 246)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        tension: 0.1
+                    }, {
+                        label: 'Forecast',
+                        data: [...Array(historicalPrices.length).fill(null), forecastData.current_price, ...forecastData.predictions],
+                        borderColor: 'rgb(34, 197, 94)',
+                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        pointRadius: 0,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: 'white',
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': $' + context.parsed.y.toFixed(2);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: 'white',
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: 'white',
+                                callback: function(value) {
+                                    return '$' + value.toFixed(0);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Update technical indicators
+            if (forecastData.technical_indicators) {
+                document.getElementById('rsiValue').textContent = forecastData.technical_indicators.rsi ? 
+                    forecastData.technical_indicators.rsi.toFixed(1) : 'N/A';
+                document.getElementById('sma20Value').textContent = forecastData.technical_indicators.sma_20 ? 
+                    '$' + forecastData.technical_indicators.sma_20.toFixed(2) : 'N/A';
+                document.getElementById('trendValue').textContent = forecastData.technical_indicators.trend || 'N/A';
+                document.getElementById('trendValue').className = `font-bold ${
+                    forecastData.technical_indicators.trend === 'bullish' ? 'text-green-400' : 'text-red-400'
+                }`;
+            }
+        }
+        
+        function updateInvestmentStrategy(data) {
+            // Update recommendation badge
+            const badge = document.getElementById('recommendationBadge');
+            badge.textContent = data.recommendation;
+            badge.className = `text-4xl font-bold mb-2 pulse-blue ${
+                data.recommendation.includes('BUY') ? 'text-green-400' : 
+                data.recommendation.includes('SELL') ? 'text-red-400' : 
+                'text-yellow-400'
+            }`;
+            
+            // Update confidence
+            document.getElementById('confidencePercent').textContent = `${data.confidence}%`;
+            document.getElementById('confidenceBar').style.width = `${data.confidence}%`;
+            
+            // Update scores (from recommendation endpoint)
+            // For now, using mock scores - you can add these to the analyze endpoint
+            document.getElementById('fundamentalScore').textContent = '0.750';
+            document.getElementById('sentimentScore').textContent = '0.600';
+            document.getElementById('technicalScore').textContent = '0.700';
+            document.getElementById('forecastScore').textContent = '0.650';
+            
+            // Update rationale
+            document.getElementById('rationale').textContent = data.rationale;
+            
+            // Update risks
+            const risksList = document.getElementById('risksList');
+            risksList.innerHTML = '';
+            data.risks.forEach((risk, index) => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center space-x-2 text-sm';
+                div.innerHTML = `
+                    <i class="fas fa-exclamation-triangle ${
+                        index === 0 ? 'text-red-400' : 'text-yellow-400'
+                    }"></i>
+                    <span class="text-gray-400">${risk}</span>
+                `;
+                risksList.appendChild(div);
+            });
+        }
+        
+        async function updateBenchmarks() {
+            try {
+                const data = await fetchBenchmarks();
+                document.getElementById('qaAccuracy').textContent = `${data.benchmarks.qa_accuracy.toFixed(0)}%`;
+                document.getElementById('predictionStatus').textContent = data.benchmarks.prediction_available ? '✓' : '✗';
+                document.getElementById('processingTime').textContent = `${data.benchmarks.processing_time_seconds}s`;
+                document.getElementById('apiStatus').textContent = 'Online';
+                document.getElementById('apiStatus').className = 'text-2xl font-bold text-green-400';
+            } catch (error) {
+                document.getElementById('apiStatus').textContent = 'Offline';
+                document.getElementById('apiStatus').className = 'text-2xl font-bold text-red-400';
+            }
+        }
+        
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Tab switching
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const tab = e.target.dataset.tab;
+                    
+                    // Update button styles
+                    document.querySelectorAll('.tab-btn').forEach(b => {
+                        b.className = 'tab-btn px-3 py-1 rounded bg-gray-700 text-sm';
+                    });
+                    e.target.className = 'tab-btn px-3 py-1 rounded bg-blue-600 text-sm';
+                    
+                    // Show/hide content
+                    document.querySelectorAll('.tab-content').forEach(content => {
+                        content.classList.add('hidden');
+                    });
+                    document.getElementById(`${tab}-tab`).classList.remove('hidden');
+                });
+            });
+            
+            // Forecast period switching
+            document.querySelectorAll('.forecast-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const days = parseInt(e.target.dataset.days);
+                    currentForecastDays = days;
+                    
+                    // Update button styles
+                    document.querySelectorAll('.forecast-btn').forEach(b => {
+                        b.className = 'forecast-btn px-3 py-1 rounded bg-gray-700 text-sm';
+                    });
+                    e.target.className = 'forecast-btn px-3 py-1 rounded bg-green-600 text-sm';
+                    
+                    // Update chart
+                    await updatePriceChart(days);
+                });
+            });
+            
+            // Q&A functionality
+            const askButton = document.getElementById('askButton');
+            const questionInput = document.getElementById('questionInput');
+            const qaHistory = document.getElementById('qaHistory');
+            
+            askButton.addEventListener('click', async () => {
+                const question = questionInput.value.trim();
+                if (!question) return;
+                
+                // Add question to history
+                const questionDiv = document.createElement('div');
+                questionDiv.className = 'bg-gray-800 rounded p-2 text-sm';
+                questionDiv.innerHTML = `<i class="fas fa-user mr-2 text-blue-400"></i>${question}`;
+                qaHistory.appendChild(questionDiv);
+                
+                // Clear input and show loading
+                questionInput.value = '';
+                askButton.disabled = true;
+                askButton.textContent = 'Thinking...';
+                
+                try {
+                    const response = await askQuestion(question);
+                    
+                    // Add answer to history
+                    const answerDiv = document.createElement('div');
+                    answerDiv.className = 'bg-gray-700 rounded p-2 text-sm ml-4';
+                    answerDiv.innerHTML = `<i class="fas fa-robot mr-2 text-green-400"></i>${response.answer}`;
+                    qaHistory.appendChild(answerDiv);
+                    
+                    // Scroll to bottom
+                    qaHistory.scrollTop = qaHistory.scrollHeight;
+                } catch (error) {
+                    showToast('Failed to get AI response');
+                } finally {
+                    askButton.disabled = false;
+                    askButton.textContent = 'Ask AI';
+                }
+            });
+            
+            // Enter key support for Q&A
+            questionInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    askButton.click();
+                }
+            });
+            
+            // Initial data load
+            try {
+                showToast('Loading analysis data...', 'info');
+                const analysisData = await fetchAnalysis();
+                
+                updateMainMetrics(analysisData);
+                updateDocumentInsights(analysisData);
+                updateSentimentChart(analysisData);
+                updateAnomalies(analysisData);
+                updateInvestmentStrategy(analysisData);
+                
+                await updatePriceChart(currentForecastDays);
+                await updateBenchmarks();
+                
+                showToast('Data loaded successfully!', 'success');
+                
+                // Add suggested questions
+                const suggestedQuestions = [
+                    "What is Microsoft's cloud revenue?",
+                    "What are the main risks?",
+                    "Show me the profit margins"
+                ];
+                
+                suggestedQuestions.forEach(q => {
+                    const btn = document.createElement('button');
+                    btn.className = 'text-xs bg-gray-700 hover:bg-gray-600 px-2 py-1 rounded mr-2 mb-2';
+                    btn.textContent = q;
+                    btn.onclick = () => {
+                        questionInput.value = q;
+                        askButton.click();
+                    };
+                    qaHistory.appendChild(btn);
+                });
+                
+            } catch (error) {
+                console.error('Failed to load initial data:', error);
+                showToast('Failed to load data. Check if backend is running.');
+            }
+            
+            // Auto-refresh every 30 seconds
+            setInterval(async () => {
+                try {
+                    const analysisData = await fetchAnalysis();
+                    updateMainMetrics(analysisData);
+                    await updateBenchmarks();
+                } catch (error) {
+                    console.error('Auto-refresh failed:', error);
+                }
+            }, 30000);
+        });
+    </script>
+</body>
+</html>
